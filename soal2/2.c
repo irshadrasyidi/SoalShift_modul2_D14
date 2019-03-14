@@ -14,11 +14,15 @@ int main(){
 	struct passwd *pwd;
 	stat(alamat, &info);
 
+	//ambil grupname
 	grp = getgrgid(info.st_uid);
 	//printf("group: %s\n", grp->gr_name);
 
+	//ambil username
 	pwd = getpwuid(info.st_gid);
 	//printf("username: %s\n", pwd->pw_name);
+	
+	//cek klo grupname & username == www-data
 	if(!strcmp(grp->gr_name, "www-data") && !strcmp(pwd->pw_name, "www-data")){
 		//printf("username: %s\n", pwd->pw_name);
 		remove("/home/irshadrasyidi/Documents/SISOP/MODUL2/SOALSHIFT/soal2/hatiku/elen.ku");
