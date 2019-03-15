@@ -199,6 +199,8 @@ sudo chown www-data:www-data elen.ku
 - Setelah program utama selesai, masukkan snippet code program utama ke template daemon proses dari modul2, di yang bagian `while(1)` paling bawah, untuk menjadikan program tadi daemon proses (sama seperti nomor 1), dan pasang sleep-nya `sleep(3)`, sehingga proses pengecekan dan hapus file `elen.ku` di folder hatiku yang sesuai kriteria terhapus setiap 3 detik.
 ## Soal3
 - Pada soal no 3, program yang dibuat adalah sebuah program yang dapat mengekstrak isi dari `campur2.zip`, lalu menyimpan file-file hasil ekstrak tadi yang ekstensinya `.txt` ke sebuah file `daftar.txt`.
+- Catatan Pengerjaan:
+  - Tidak dapat mengerjakan karena bingung di `pipe`nya
 
 
 ## Soal4
@@ -281,4 +283,191 @@ touch -a makan_enak.txt`
 - Setelah command dijalankan, akan terbentuk file `makan_sehat#.txt` di folder `/makanan`
 ## Soal5
 - Pada soal no 5, program yang dibuat adalah sebuah daemon proses yang dapat membuat folder baru setiap 30 menit di direktori `/home/[user]/log/` dengan format nama `[dd:MM:yyyy-hh:mm]` sesuai waktu dijalankan, dan juga membuat file `log#.log` di dalam folder tadi setiap 1 menit.
-
+- Pada soal nomor 5, program C yang dibuat harus bisa menjalankan 2 proses yaitu proses membuat folder baru setiap 30 menit, dan membuat file baru setiap menit, hal ini bisa dilakukan dengan cara mem-fork lagi proses yang ada, sehingga terbentuk 2 proses, child dan parent
+- Proses child akan diisi dengan program yang membuat folder baru setiap 30 menit, dan proses parent akan diisi dengan program yang membuat file `file#.log` setiap menit.
+- Karena potongan kode pembuatan formatting nama folder panjang dan digunakan beberapa kali, maka akan dimasukkan ke fungsi sendiri (dibuat di luar int main())
+- Karena nama folder yang harus dibuat terdiri dari format-format tanggal dan waktu, maka tambahkan dulu library <time.h>([time.h](https://www.tutorialspoint.com/c_standard_library/time_h.htm))
+- Di library ini, ada suatu tipe variabel struct yaitu `struct tm` yang akan digunakan dalam penyusunan nama folder, berikut isi dari struct tersebut:
+  - int tm_sec;         /* seconds,  range 0 to 59          */
+  - int tm_min;         /* minutes, range 0 to 59           */
+  - int tm_hour;        /* hours, range 0 to 23             */
+  - int tm_mday;        /* day of the month, range 1 to 31  */
+  - int tm_mon;         /* month, range 0 to 11             */
+  - int tm_year;        /* The number of years since 1900   */
+  - int tm_wday;        /* day of the week, range 0 to 6    */
+  - int tm_yday;        /* day in the year, range 0 to 365  */
+  - int tm_isdst;       /* daylight saving time             */
+- Member dari struct yang akan digunakan adalah `int tm_min` (menit), `int tm_hour` (jam), `int tm_mday` (tanggal), `int tm_mon` (bulan), dan `int tm_year` (tahun).
+- Fungsi formatting nama ini dapat menghasilkan 2 macam format nama, sehingga fungsi harus menerima argumen untuk membedakan.
+  - Format nama dengan waktu sekarang.
+  - Format nama dengan waktu sekarang + 30 menit.
+- Pada awal fungsi, ambil waktu sekarang dengan fungsi `time()` dan disimpan ke sebuah variabel bertipe time_t
+```
+time_t wkt = time(NULL);
+```
+- Lalu, buat variabel `struct tm` yang isinya diisi dengan fungsi `*localtime()`.
+- Fungsi dari fungsi `*localtime()` adalah menyusun kondisi waktu yang didapat menjadi waktu lokal dan memasangkan ke masing-masing member dari struct tersebut (mis. menit ke `tm_min`, jam ke `tm_hour`, bulan ke `tm_mon`, dst).
+- Lalu siapkan variabel string untuk menyimpan nama yang akan dipakai untuk penamaan folder.
+```
+static char nama[200];
+```
+- Karena potongan-potongan waktu dari `struct tm` bertipe integer, supaya bisa dimasukkan ke string maka integer-integer tersebut harus dikonversi ke bentuk string dengan fungsi `sprintf` seperti yang telah digunakan pada nomor 4 sebelumnya, sehingga diperlukan variabel string sementara untuk menyimpan hasil konversi tersebut.
+```
+static char temp[200];
+```
+- Berikut adalah contoh pemasangan format-format waktu ke string nama
+```
+sprintf(temp, "%d", waktu.tm_mday);
+strcat(nama, temp);
+```
+- Namun, pada tanggal, bulan, jam, dan menit, terdapat kemungkinan string hanya terdiri dari 1 digit angka (), padahal format dari soal meminta 2 digit semua kecuali tahun yang 4 digit.
+- Untuk mengatasinya, dibuat `if` di masing-masing format waktu untuk mengecek apakah format waktu tersebut lebih kecil dari 10.
+```
+if(waktu.tm_mday < 10)
+```
+- Jika kurang dari 10, maka sebelum pemasangan biasanya, harus diisi angka 0 terlebih dahulu
+```
+sprintf(temp, "%d", 0);
+strcat(nama, temp);
+```
+- Cara diatas sebetulnya bisa dipercepat dengan langsung di`strcat()` dengan "0"
+```
+strcat(nama, "0");
+```
+- Jika tidak kurang dari 10, maka bisa langsung dipasangkan.
+- Perhatikan penjelasan sebelumnya pada member bulan dan tahun, disebutkan bahwa range bulan adalah 0-11 dan range tahun adalah nomor tahun sejak/dimulai dari 1900.
+- Untuk mengatasi ini, maka saat pemasangan pada bulan, `tm_mon`-nya dijumlah dengan 1 dan `tm_year`-nya dijumlah dengan 1900.
+```
+sprintf(temp, "%d", waktu.tm_mon + 1);
+sprintf(temp, "%d", waktu.tm_year + 1900);
+```
+- Jangan lupa `strcat()` untuk yang simbol-simbol pemisah.
+```
+strcat(nama, ":");
+strcat(nama, "-");
+```
+- Lalu untuk format penamaan yang ditambah 30 menit, sama semua seperti sebelumnya, tetapi cukup pada bagian awal `else`, `tm_min`-nya ditambah 30, lalu panggil fungsi `mktime()` dengan argumennya alamat dari `struct tm`. Fungsi ini untuk mengatasi case jika menit di atas 30, saat ditambah 30 akan menjadi lebih besar dari 60. ([mktime()](https://www.tutorialspoint.com/c_standard_library/c_function_mktime.htm))
+```
+waktu.tm_min += 30;
+mktime(&waktu);
+```
+- Lalu pada bagian akhir fungsi, fungsi me-return string nama folder dengan format sudah lengkap.
+- Setelah fungsi pembuatan nama folder selesai, waktunya membuat 2 proses dengan memanggil fungsi `fork()`.
+- Mula-mula panggil fungsi fork setelah 3 baris kode fungsi `close()` di kode daemon proses dari modul 2.
+```
+pid = fork();
+```
+- Buat juga variabel string yang menyimpan direktori ke folder `/log` pada `/user`, sebagai tempat pembuatan folder akan dilangsungkan.
+```
+char pathdir[200];
+strcat(pathdir, "/home/irshadrasyidi/log/");
+```
+- Pada child proses, buat sebuah variabel string dan diisi dengan hasil fungsi pembuatan nama yang merupakan waktu sekarang (bukan yang ditambah 30 menit)
+```
+strcat(nama, buatnama(1));
+```
+- Gabungkan string barusan dengan string sebelumnya yang berisi lokasi direktori `/log`.
+```
+strcat(pathdir, nama);
+```
+- Lalu, panggil fungsi `mkdir()` untuk membuat folder baru dengan argumen pertama adalah string nama folder yang sudah lengkap, dan argumen kedua berisi settingan mode-mode supaya bisa digunakan oleh semua entitas (sama seperti soal nomor 2)
+```
+mkdir(pathdir, S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IWOTH|S_IXOTH);
+```
+- Jangan lupa untuk mereset ulang kembali string yang tadi digunakan, supaya bisa digunakan di pembuatan-pembuatan folder selanjutnya (stringnya tidak menumpuk).
+```
+memset(&pathdir, 0, sizeof(pathdir));
+strcat(pathdir, "/home/irshadrasyidi/log/");
+```
+- Pada akhir proses child tersebut buat fungsi `sleep()` dengan nilai 1800 untuk dijalankan lagi 30 menit kemudian (30 x 60).
+- Pada proses yang kedua (yang parent), buat 3 variabel berikut sebelum masuk ke `while(1)`:
+  - Sebuah integer counter dengan nilai awal 1 : Untuk nomor urutan nama file `log#.log`.
+  - Sebuah integer pengecekan bernilai awal 1 : Untuk pengecekan jika sudah waktunya pindah folder (pindah ke yang 30 menit selanjutnya).
+  - Sebuah variabel string : Untuk menyimpan nama folder yang 30 menit kemudian.
+  ```
+  int counter = 0;
+  int start = 1;
+  char scndryname[200];
+  ```
+- Selanjutnya buat sebuat `while(1)` dan pertama, buat 2 variabel string lagi
+  - Pertama : Untuk menyimpan nama folder yang akan dipakai sebagai tempat disimpannya file `log#.log`
+  - Kedua : Untuk menyimpan nama folder dengan waktu sekarang.
+```
+char primryname[200];
+char currentname[200];
+strcat(currentname, buatnama(1));
+```
+- Lalu, buat 1 variabel string sementara yang berisi nama folder 30 menit kemudian beserta direktorinya dari `/home`, dan akan digunakan dalam fungsi `stat()`
+```
+char tmp[200];
+strcat(tmp, pathdir);
+strcat(tmp, scndryname);
+```
+- Buat juga sebuah variabel dengan tipe `struct stat` lagi, fungsinya adalah untuk pengecekan di dalam `if` jika suatu folder sudah ada di folder `/log` atau belum.
+- Selanjutnya, buat sebuah `if` untuk mengecek apakah proses tersebut dijalankan pertama kali atau tidak.
+```
+if (start == 1)
+```
+- Jika benar, maka string yang berfungsi menyimpan nama folder tujuan dibuatnya file diisi dengan nama folder dengan waktu sekarang, dan string yang berfungsi menyimpan nama folder 30 menit selanjutnya diisi dengan nama folder dengan waktu 30 menit kemudian.
+```
+strcat(primryname, buatnama(1));
+strcat(scndryname, buatnama(0));
+```
+- **Reminder : Untuk pengisian (assignment) string pada program C tidak bisa langsung menghilangkan isi sebelumnya, jadi harus dikosongkan terlebih dahulu dengan strcpy() atau memset().
+- Jika kondisi if salah, maka masuk ke `else if` berikutnya, yang mengecek jika proses sudah pernah dijalankan `(start < 1)`, dan nama folder dengan waktu 30 menit kemudian sudah sama dengan nama folder dengan waktu sekarang `(strcmp(currentname, scndryname) == 0)`, dan folder dengan nama yang waktunya 30 menit kemudian sudah terbuat `(stat(tmp, &info) == 0)`, maka string yang berfungsi menyimpan nama folder tujuan dibuatnya file diisi dengan nama folder dengan waktu 30 menit kemudian, dan string yang berfungsi menyimpan nama folder 30 menit selanjutnya diisi dengan nama folder dengan waktu 30 menit selanjutnya lagi.
+- Secara singkat, kondisi `if` dan `if else` yang dijabarkan di atas berfungsi menyiapkan nama folder 30 menit kedepan dan menukar nama folder tujuan sekarang dengan nama folder 30 menit kedepan.
+- Selanjutnya ganti isi variabel sementara yang sebelumnya berisi nama folder 30 menit kemudian dengan nama folder waktu sekarang. Karena `if` selanjutnya akan mengecek apakah folder waktu sekarang sudah dibuat atau belum.
+```
+strcat(tmp, pathdir);
+strcat(tmp, primryname);
+```
+- Buat `if` yang dimaksud di poin atas yang mengecek apakah folder tujuan letak file ditaruh sudah dibuat `(stat(tmp, &info) == 0)` dan string untuk menyimpan nama folder tujuan memang sudah ada isinya`(strcmp(primryname, "") != 0)`
+- Jika `if` memenuhi, maka buat `while(1)` utama di dalamnya yang isinya adalah proses mengambil isi syslog dan disimpan ke file `log#.log` setiap menitnya.
+- Pertama ubah nilai variabel integer yang sebelumnya dibuat dengan fungsi pengecekan pembuatan folder menjadi lebih kecil supaya tidak masuk ke `if` di sebelumn-sebelumnya (`if` yang `(start == 1)`).
+- Lalu, buat sebuah string yang mengambil alamat direktori file `syslog`.
+```
+char pathsys[200];
+strcat(pathsys, "/var/log/syslog");
+```
+- Lalu, buat string lagi yang digunakan untuk menyimpan nama file yang akan dibuat beserta alamat dan direktori lengkap dari root hingga nama folder dengan format waktu yang sebelumnya sudah dibuat.
+```
+char filelog[200];
+strcat(filelog, pathdir);
+strcat(filelog, primryname);
+strcat(filelog, "/log");
+```
+- Jangan lupa untuk mensisipkan integer counter yang jauh-jauh hari sudah dibuat untuk nomor urut nama file (konversi integer ke string-nya gunakan `sprintf()` lagi).
+```
+sprintf(temp, "%d", counter + 1);
+strcat(filelog, temp);
+strcat(filelog, ".log");
+```
+- Lalu, gunakan u=fungsi `fopen()` untuk membaca isi syslog dan membuat file baru dengan nama lengkap beserta direktorinya yang sudah dibuat tadi.
+```
+FILE *sys=fopen((char*)pathsys, "r");
+FILE *log=fopen((char*)filelog, "w");
+```
+- Lalu, gunakan while loop selama tidak End-Of-File (EOF) untuk meng-copy isi syslog ke file tujuan (proses copy men-scan per karakter)
+```
+char ch;
+	while((ch = fgetc(sys)) != EOF ){
+		fputc(ch, log);
+}
+```
+- Selanjutnya tutup 2 file tadi dengan `fclose()`.
+```
+fclose(sys);
+fclose(log);
+```
+- Variabel integer counter di-increment supaya nomor urutan file tetap urut dan yang baru tidak meng-overwrite yang lama.
+```
+counter++;
+```
+- Lalu berikan satu `if` terakhir yang mengecek jika counter sudah menyentuh 30, maka di-break dari `while(1)` utama dan bersiap untuk proses pemindahan folder tujuan (proses yang ada `if` dan `else if` nya di luar loop `while(1)` utama)
+```
+if(counter % 30 == 0){
+	//printf("BREAK\n");
+	break;
+}
+```
+- Jangan lupa untuk memasang `sleep(60)` pada `while(1)` utama (while pembentukan file log), supaya pembentukan file log dijalankan setiap menit.
