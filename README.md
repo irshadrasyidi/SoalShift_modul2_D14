@@ -148,6 +148,9 @@ char alamat[250] = "/home/irshadrasyidi/Documents/SISOP/MODUL2/SOALSHIFT/soal2/h
   - off_t     st_size;        /* Total size, in bytes */
   - blksize_t st_blksize;     /* Block size for filesystem I/O */
   - blkcnt_t  st_blocks;      /* Number of 512B blocks allocated */
+  - struct timespec st_atime;  /* Time of last access */
+  - struct timespec st_mtime;  /* Time of last modification */
+  - struct timespec st_ctime;  /* Time of last status change */
 - Lalu, akan digunakan juga fungsi `stat()`, yang akan menerima 2 parameter:
   - Pertama : Alamat file yang akan dicari tahu informasinya
   - Kedua : Sebuah struct stat
@@ -200,7 +203,82 @@ sudo chown www-data:www-data elen.ku
 
 ## Soal4
 - Pada soal no 4, program yang dibuat adalah sebuah daemon proses yang dapat membuat file `makan_sehat#.txt` jika `makan_enak.txt` diakses.
-
-
+- Pada soal sebelumnya, sempat dijabarkan variabel-variabel yang merupakan member dari `struct stat` salah tiganya adalah variabel yang berhubungan dengan waktu, yaitu:
+  - struct timespec st_atime;  /* Time of last access */
+  - struct timespec st_mtime;  /* Time of last modification */
+  - struct timespec st_ctime;  /* Time of last status change */
+- Kita akan menggunakan `st_atime` untuk melihat last access time dari file yang dimaksud.
+- Karena berhubungan juga dengan waktu, kita juga menambah library <time.h>, karena ada fungsi yang akan digunakan dari library tersebut, yaitu `difftime()` ([time.h](https://www.tutorialspoint.com/c_standard_library/time_h.htm)).
+- Pertama, ambil potongan file daemon proses dari modul 2
+- di antara `while(1)` di bagian bawah 3 fungsi close, sisipkan deklarasi sebuah string yang menyimpan direktori dari  file `makan_enak.txt`
+```
+char pathmakanan[200];
+memset(&pathmakanan, 0, sizeof(pathmakanan));
+strcat(pathmakanan, "/home/irshadrasyidi/Documents/makanan/makan_enak.txt");
+```
+- Fungsi `memset()` digunakan untuk mengosongkan string sebelum digunakan untuk memastika string kosong (seperti `strcpy(string, "")` pada soal1).
+- Lalu, saat mulai masuk ke while, buat sebuah `struct stat` dan langsung jalankan fungsi `stat()` untuk mengambil informasi-informasi mengenai file `makan_enak.txt` dengan memasukkan argumen alamat direktorinya di parameter pertama fungsi `stat()` dan `struct stat`-nya di parameter pertama.
+```
+struct stat info;
+stat(pathmakanan, &info);
+```
+- Lalu, buat sebuah variabel bertipe `time_t` dan disimpan dengan waktu sekarang (menggunakan fungsi `time()`)
+```
+time_t waktu = time(NULL);
+```
+- Lalu, buat sebuah variabel bertipe `time_t` juga tetapi isinya disimpan last access time dari file `makan_enak.txt`.
+```
+time_t lastaccess = info.st_atime;
+```
+- Lalu, buat sebuah pengecekan `if` yang mengecek apakah `makan_enak.txt` diakses kurang dari 30 detik yang lalu
+```
+if(difftime(waktu, lastaccess) <= 30)
+```
+- Pengecekan ini dimudahkan dengan fungsi `difftime()` yang dapat menghitung selisih dari 2 argumen waktu yang diberikan.
+- Jika `makan_enak.txt` diakses kurang dari 30 detik yang lalu, maka hasil `difftime()` akan bernilai lebih kecil dari 30 dan masuk ke dalam `if`.
+- Di dalam `if`, buat sebuah variabel yang menyimpan direktori dan nama file `makan_sehat#.txt`.
+```
+char sehat[200];
+memset(&sehat, 0, sizeof(sehat));
+strcat(sehat, "/home/irshadrasyidi/Documents/makanan/makan_sehat");
+```
+- Untuk mengambil no urutan pembentukan file-nya, dibuat sebuah variabel counter bertipe integer di luar `while(1)` pada program, dipasang nilai 1
+```
+int no = 1;
+```
+- Variabel ini akan menjadi sisipan untuk nama file yang akan dibuat, tetapi karena bertipe integer dan nama file bertipe string, maka integer ini harus diubah ke bentuk string menggunakan fungsi `sprintf()` ([sprintf()](https://www.geeksforgeeks.org/sprintf-in-c/)).
+- Pengubahan ini dilakukan dengan membuat sebuah string sementara untuk menyimpan hasil konversi fungsi `sprintf()`
+```
+char temp[200];
+memset(&temp, 0, sizeof(temp));
+sprintf(temp, "%d", no);
+```
+- Lalu, variabel string `temp` yang berisi nomor urutan tadi dimasukkan ke variabel string alamat direktori dan nama file yang belum lengkap tadi
+```
+strcat(sehat, temp);
+```
+- Lalu, tambahkan ekstensi `.txt` pada akhir nama file
+```
+strcat(sehat, ".txt");
+```
+- Nama file sudah siap, lalu buat sebuah file baru menggunakan fungsi `fopen()` dengan argumen terakhir pada fungsi yaitu `"w"` untuk 'Write'
+```
+FILE *createfile=fopen((char*)sehat,"w");
+```
+- Jangan lupa untuk meng-increment variabel counter integer-nya di bagian akhir program supaya urutannya bertambah dan tidak meng-overwrite file urutan sebelumnya yang sudah dibuat.
+```
+no++;
+```
+- Lalu pasang `sleep()` bernilai sleep(5) supaya pembuatan file dilakukan setiap 5 detik.
+- Untuk mengetes program bisa jalan, buat terlebih dahulu folder `/makanan` di Documents dan taruh `makan_enak.txt` di folder tersebut.
+- Lalu jalankan program yang sudah dibuat tadi.
+- Lalu, buka terminal di folder `/makanan` yang ada file `makan_enak.txt`-nya.
+- Lalu, jalankan command berikut
+```
+touch -a makan_enak.txt`
+```
+- Command ini akan mengganti hanya last access time dari `file makan_enak.txt` karena menggunakan opsi `-a` ([touch](http://www.linfo.org/touch.html))
+- Setelah command dijalankan, akan terbentuk file `makan_sehat#.txt` di folder `/makanan`
 ## Soal5
 - Pada soal no 5, program yang dibuat adalah sebuah daemon proses yang dapat membuat folder baru setiap 30 menit di direktori `/home/[user]/log/` dengan format nama `[dd:MM:yyyy-hh:mm]` sesuai waktu dijalankan, dan juga membuat file `log#.log` di dalam folder tadi setiap 1 menit.
+
