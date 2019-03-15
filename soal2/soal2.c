@@ -49,11 +49,11 @@ int main() {
 	stat(alamat, &info);
 
 	//ambil grupname
-	grp = getgrgid(info.st_uid);
+	grp = getgrgid(info.st_gid);
 	//printf("group: %s\n", grp->gr_name);
 
 	//ambil username
-	pwd = getpwuid(info.st_gid);
+	pwd = getpwuid(info.st_uid);
 	//printf("username: %s\n", pwd->pw_name);
 	
 	//cek klo grupname & username == www-data
