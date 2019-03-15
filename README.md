@@ -4,7 +4,7 @@
 
 ## Soal 1
 - Pada soal no 1, program yang dibuat adalah sebuah daemon proses yang dapat me-rename file ekstensi `.png` menjadi `_grey.png`, dan memindahkan secara otomatis ke direktori `/home/[user]/modul2/gambar`.
-- Dalam pengerjaan Soal 1, library yang sangat berperan adalah library <dirent.h> dan struct dirent.
+- Dalam pengerjaan Soal 1, library yang sangat berperan adalah library <dirent.h> dan struct dirent. ([sumber dirent.h](http://pubs.opengroup.org/onlinepubs/7908799/xsh/dirent.h.html))
 - Pada library <dirent.h>, ada beberapa fungsi yang akan dipakai, yaitu:
   - opendir(): abc.
   - readdir(): abc.
@@ -120,7 +120,8 @@ Catatan Pengerjaan:
 ## Soal2
 - Pada soal no 2, program yang dibuat adalah sebuah daemon proses yang dapat menghapus file `elen.ku` pada syarat dan kondisi tertentu.
 - Kali ini, library yang berperan penting dalam jalannya program adalah library <pwd.h>, <grp.h>, dan <sys/stat.h>
-- Pada library ini terdapat fungsi getpwuid() yang dapat mengambil User ID dan me-return pointer of `struct passwd` jika ditemukan entry yang cocok, begitu juga dengan fungsi getgrgid() yang dapat 
+- Pada library ini terdapat fungsi getpwuid() yang dapat mengambil User ID dan me-return pointer of `struct passwd` jika ditemukan entry yang cocok, begitu juga dengan fungsi getgrgid() yang dapat mengambil Group ID dan me-return pointer of `struct group` jika ditemukan entry yang cocok. ([sumber grp.h](https://pubs.opengroup.org/onlinepubs/7908799/xsh/grp.h.html), [sumber pwd.h](http://pubs.opengroup.org/onlinepubs/7908799/xsh/pwd.h.html))
+- 
 
 ## Soal3
 - Pada soal no 3, program yang dibuat adalah sebuah program yang dapat mengekstrak isi dari `campur2.zip`, lalu menyimpan file-file hasil ekstrak tadi yang ekstensinya `.txt` ke sebuah file `daftar.txt`.
