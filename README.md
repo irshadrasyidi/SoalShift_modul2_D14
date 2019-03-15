@@ -119,6 +119,9 @@ closedir(d2);
 - 1.c adalah program utama untuk me-rename file-file `.png`-nya
 - 1.c berhasil dicompile menjadi 1.out dan berhasil dijalankan dan berhasil me-rename semua file `.png` menjadi `_grey.png` serta memindahkan ke folder gambar
 - Kendala Error: Saat sudah dimasukkan ke soal1.c (program untuk daemon proses), dan dijalankan, proses dapat berjalan (sudah dicek di terminal), tetapi tidak bisa menjalankan fungsinya dengan semestinya (tidak bisa me-rename dan memindahkan filenya)
+
+
+
 ## Soal2
 - Pada soal no 2, program yang dibuat adalah sebuah daemon proses yang dapat menghapus file `elen.ku` pada syarat dan kondisi tertentu.
 - Kali ini, library yang berperan penting dalam jalannya program adalah library <pwd.h>, <grp.h>, dan <sys/stat.h>
@@ -197,10 +200,14 @@ sudo chown www-data:www-data elen.ku
 - `www-data` di kiri titikdua adalah mengganti owner-user nya, dan yang di kiri mengganti owner-group nya. ([chown](https://linux.die.net/man/1/chown))
 - Setelah terganti, jalankan programnya, `elen.ku` akan terhapus.
 - Setelah program utama selesai, masukkan snippet code program utama ke template daemon proses dari modul2, di yang bagian `while(1)` paling bawah, untuk menjadikan program tadi daemon proses (sama seperti nomor 1), dan pasang sleep-nya `sleep(3)`, sehingga proses pengecekan dan hapus file `elen.ku` di folder hatiku yang sesuai kriteria terhapus setiap 3 detik.
+
+
+
 ## Soal3
 - Pada soal no 3, program yang dibuat adalah sebuah program yang dapat mengekstrak isi dari `campur2.zip`, lalu menyimpan file-file hasil ekstrak tadi yang ekstensinya `.txt` ke sebuah file `daftar.txt`.
 - Catatan Pengerjaan:
-  - Tidak dapat mengerjakan karena bingung di `pipe`nya
+  - Tidak dapat mengerjakan karena bingung di `pipe`nya dan kehabisan waktu mencoba menyelesaikan kendala daemon proses di nomor 1
+
 
 
 ## Soal4
@@ -281,6 +288,9 @@ touch -a makan_enak.txt`
 ```
 - Command ini akan mengganti hanya last access time dari `file makan_enak.txt` karena menggunakan opsi `-a` ([touch](http://www.linfo.org/touch.html))
 - Setelah command dijalankan, akan terbentuk file `makan_sehat#.txt` di folder `/makanan`
+
+
+
 ## Soal5
 - Pada soal no 5, program yang dibuat adalah sebuah daemon proses yang dapat membuat folder baru setiap 30 menit di direktori `/home/[user]/log/` dengan format nama `[dd:MM:yyyy-hh:mm]` sesuai waktu dijalankan, dan juga membuat file `log#.log` di dalam folder tadi setiap 1 menit.
 - Pada soal nomor 5, program C yang dibuat harus bisa menjalankan 2 proses yaitu proses membuat folder baru setiap 30 menit, dan membuat file baru setiap menit, hal ini bisa dilakukan dengan cara mem-fork lagi proses yang ada, sehingga terbentuk 2 proses, child dan parent
