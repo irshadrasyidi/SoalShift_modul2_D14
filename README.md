@@ -113,16 +113,87 @@ closedir(d);
 closedir(d2);
 ```
 - Program utama selesai, lalu masukkan potongan kodenya ke program untuk mengubah menjadi daemon proses (kode yang dari modul 2) pada loop `while(1)` pada bagian terakhir, dan pasang sleepnya terserah karena tidak ada ketentuan pada soal (kami gunakan `sleep(3);` dengan harapan prosesnya tidak menunggu terlalu lama)
-Catatan Pengerjaan:
+- Jangan lupa sebelum mencoba programnya untuk membuat terlebih dahulu folder /modul2/gambar di direktori user
+
+### Catatan Pengerjaan:
 - 1.c adalah program utama untuk me-rename file-file `.png`-nya
 - 1.c berhasil dicompile menjadi 1.out dan berhasil dijalankan dan berhasil me-rename semua file `.png` menjadi `_grey.png` serta memindahkan ke folder gambar
 - Kendala Error: Saat sudah dimasukkan ke soal1.c (program untuk daemon proses), dan dijalankan, proses dapat berjalan (sudah dicek di terminal), tetapi tidak bisa menjalankan fungsinya dengan semestinya (tidak bisa me-rename dan memindahkan filenya)
 ## Soal2
 - Pada soal no 2, program yang dibuat adalah sebuah daemon proses yang dapat menghapus file `elen.ku` pada syarat dan kondisi tertentu.
 - Kali ini, library yang berperan penting dalam jalannya program adalah library <pwd.h>, <grp.h>, dan <sys/stat.h>
-- Pada library ini terdapat fungsi getpwuid() yang dapat mengambil User ID dan me-return pointer of `struct passwd` jika ditemukan entry yang cocok, begitu juga dengan fungsi getgrgid() yang dapat mengambil Group ID dan me-return pointer of `struct group` jika ditemukan entry yang cocok. ([sumber grp.h](https://pubs.opengroup.org/onlinepubs/7908799/xsh/grp.h.html), [sumber pwd.h](http://pubs.opengroup.org/onlinepubs/7908799/xsh/pwd.h.html))
-- 
-
+- Pada library ini terdapat fungsi `getpwuid()` yang dapat mengambil User ID dan me-return pointer of `struct passwd` jika ditemukan entry yang cocok, begitu juga dengan fungsi `getgrgid()` yang dapat mengambil Group ID dan me-return pointer of `struct group` jika ditemukan entry yang cocok. ([sumber grp.h](https://pubs.opengroup.org/onlinepubs/7908799/xsh/grp.h.html), [sumber pwd.h](http://pubs.opengroup.org/onlinepubs/7908799/xsh/pwd.h.html))
+- Pertama, masukkan fungsi chmod untuk mengubah mode file dari dalam program supaya bisa dihapus dengan parameter berikut
+```
+chmod("/home/irshadrasyidi/Documents/SISOP/MODUL2/SOALSHIFT/soal2/hatiku/elen.ku", S_IRUSR|S_IWUSR|S_IXUSR|S_IRGRP|S_IWGRP|S_IXGRP|S_IROTH|S_IWOTH|S_IXOTH);
+```
+- Parameter pertama chmod mengambil lokasi file `elen.ku`, dan parameter kedua adalah perubahan/modifikasi mode pada file
+- `S_I[p][xxx]`:
+  - p : Bisa bernilai R (read), W (write), atau X (execute). Untuk mengeset supaya file bisa dibaca, diedit, atau dijalankan.
+  - xxx : Bisa bernilai USR (user), GRP (group), atau OTH (other). Untuk mengeset siapa yang berhak menggunakan mode pada `[p]`
+- Lebih lengkapnya bisa dicek di ([man chmod](http://man7.org/linux/man-pages/man2/chmod.2.html))
+- Lalu, buat sebuah struct stat dan sebuah string yang menyimpan alamat file `elen.ku`.
+```
+struct stat info;
+char alamat[250] = "/home/irshadrasyidi/Documents/SISOP/MODUL2/SOALSHIFT/soal2/hatiku/elen.ku";
+```
+- struct stat adalah sebuah struct yang memiliki member yaitu informasi-informasi mengenai sebuah file, berikut adalah isinya:
+  - dev_t     st_dev;         /* ID of device containing file */
+  - ino_t     st_ino;         /* Inode number */
+  - mode_t    st_mode;        /* File type and mode */
+  - nlink_t   st_nlink;       /* Number of hard links */
+  - uid_t     st_uid;         /* User ID of owner */
+  - gid_t     st_gid;         /* Group ID of owner */
+  - dev_t     st_rdev;        /* Device ID (if special file) */
+  - off_t     st_size;        /* Total size, in bytes */
+  - blksize_t st_blksize;     /* Block size for filesystem I/O */
+  - blkcnt_t  st_blocks;      /* Number of 512B blocks allocated */
+- Lalu, akan digunakan juga fungsi `stat()`, yang akan menerima 2 parameter:
+  - Pertama : Alamat file yang akan dicari tahu informasinya
+  - Kedua : Sebuah struct stat
+```
+stat(alamat, &info);
+```
+- Jadi, setelah fungsi stat dijalankan, `struct stat info` akan diisi dengan informasi-informasi mengenai file yang ada di `alamat`, yaitu `elen.ku`.
+- Dari variabel-variabel di atas, yang akan dipakai adalah `st_uid` untuk mengambil User ID dan `st_gid` untuk mengambil Group ID
+- Lebih lengkap mengenai stat ada di ([man stat](http://man7.org/linux/man-pages/man2/fstat.2.html)).
+- Selanjutnya, buat sebuah `struct group` dan sebuah `struct passwd`
+```
+struct group *grp;
+struct passwd *pwd;
+```
+- Struct group adalah struct yang dapat menyimpan dan mengolah informasi lebih spesifik mengenai group, dengan isi variable berikut:
+  - char   *gr_name : the name of the group
+  - gid_t   gr_gid  : numerical group ID
+  - char  **gr_mem  : pointer to a null-terminated array of character
+- Struct passwd adalah struct yang dapat menyimpan data mengenai User ID, Username, dan lain-lain sebagai berikut:
+  - char    *pw_name   /*user's login name
+  - uid_t    pw_uid    /*numerical user ID
+  - gid_t    pw_gid    /*numerical group ID
+  - char    *pw_dir    /*initial working directory
+  - char    *pw_shell  /*program to use as shell
+- Dari 2 struct ini, yang akan dipakai adalah `gr_gid` dari struct group untuk mengambil `st_gid` hasil dari fungsi stat, begitu juga dengan `pw_uid` dari struct passwd untuk mengambil `st_uid` hasil dari fungsi stat.
+- Mengambilnya dengan fungsi `getpwuid()` untuk yang User ID dan fungsi `getgrgid()` untuk Group ID
+```
+grp = getgrgid(info.st_gid);
+pwd = getpwuid(info.st_uid);
+```
+- Setelah didapat info-info tadi, kita bisa melihat group name dan username nya dengan mengakses struct group dan struct passwd tadi dengan member yang sesuai (`grp->gr_name` untuk mengakses group name dan `pwd->pw_name` untuk mengakses username)
+- Selanjutnya adalah mengecek nama-nama yang didapat tadi dengan `if` berikut
+```
+if(!strcmp(grp->gr_name, "www-data") && !strcmp(pwd->pw_name, "www-data"))
+```
+- Pengecekan menggunakan fungsi `strcmp()` dengan parameter nama-namanya dan dibandingkan dengan string `www-data` sesuai dengan permintaan soal.
+- Karena `strcmp()` mengembalikan nilai 0 jika sama, maka hasil `strcmp()`-nya dinegasi supaya jadi 1 dan bisa masuk ke dalam `if`-nya.
+- Di dalam `if`-nya, cukup gunakan fungsi `remove()` dengan parameter alamat file yang akan dihapus untuk menghapus file `elen.ku`.
+- Jika ingin mencoba apakah program berjalan dengan lancar, buat folder `/hatiku` dan buat file `elen.ku` di dalamnya.
+- Karena `elen.ku` hanya bisa dihapus jika group name dan username nya `www-data`, maka modif file `elen.ku` dengan cara buka terminal di direktori hatiku, lalu ketikkan command berikut
+```
+sudo chown www-data:www-data elen.ku
+```
+- `www-data` di kiri titikdua adalah mengganti owner-user nya, dan yang di kiri mengganti owner-group nya. ([chown](https://linux.die.net/man/1/chown))
+- Setelah terganti, jalankan programnya, `elen.ku` akan terhapus.
+- Setelah program utama selesai, masukkan snippet code program utama ke template daemon proses dari modul2, di yang bagian `while(1)` paling bawah, untuk menjadikan program tadi daemon proses (sama seperti nomor 1), dan pasang sleep-nya `sleep(3)`, sehingga proses pengecekan dan hapus file `elen.ku` di folder hatiku yang sesuai kriteria terhapus setiap 3 detik.
 ## Soal3
 - Pada soal no 3, program yang dibuat adalah sebuah program yang dapat mengekstrak isi dari `campur2.zip`, lalu menyimpan file-file hasil ekstrak tadi yang ekstensinya `.txt` ke sebuah file `daftar.txt`.
 
