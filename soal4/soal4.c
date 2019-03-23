@@ -8,6 +8,7 @@
 #include <syslog.h>
 #include <string.h>
 #include <time.h>
+#include <fcntl.h>
 
 int main() {
   pid_t pid, sid;
@@ -43,6 +44,8 @@ int main() {
 	strcat(pathmakanan, "/home/irshadrasyidi/Documents/makanan/makan_enak.txt");
 	int no = 1;
   while(1) {
+	//Kesalahan saat demo:
+	//Saat dibuka pertama bisa membuat file, tetapi yang kedua tidak bisa
     // main program here
 	struct stat info;
 	stat(pathmakanan, &info);
@@ -64,13 +67,20 @@ int main() {
 		strcat(sehat, temp);
 		strcat(sehat, ".txt");
 
-		FILE *createfile=fopen((char*)sehat,"w");
+		FILE *createfile=fopen((char*)sehat,"w");	
 
 		no++;
 		//printf("%d\n", no);
-
+		
 	}
+	//revisi:
+	//waktu lastaccess diset kembali dengan waktu sekarang
+	lastaccess = time(NULL);
 
+	//*NOTE*: jika tidak jalan, setelah file dibuka, coba save ulang file 'makan_enak.txt' atau gunakan command 'touch -a makan_enak.txt' pada terminal untuk ubah waktu last access-nya
+	//Catatan Pengerjaan Revisi:
+	//Pada saat sebelum revisi, saya coba ulang kembali dengan cara akses file 'makan_enak.txt' menggunakan cara2 di *NOTE* di atas, dan berhasil, dengan atau tanpa menggunakan baris 'lastaccess = time(NULL);'
+	
     sleep(5);
   }
   
