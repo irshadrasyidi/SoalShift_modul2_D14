@@ -120,6 +120,29 @@ closedir(d2);
 - 1.c berhasil dicompile menjadi 1.out dan berhasil dijalankan dan berhasil me-rename semua file `.png` menjadi `_grey.png` serta memindahkan ke folder gambar
 - Kendala Error: Saat sudah dimasukkan ke soal1.c (program untuk daemon proses), dan dijalankan, proses dapat berjalan (sudah dicek di terminal), tetapi tidak bisa menjalankan fungsinya dengan semestinya (tidak bisa me-rename dan memindahkan filenya)
 
+### Catatan Setelah Revisi
+- Kegagalan saat demo:
+  - File `.png` tidak ter-rename -> karena `chdir` masih pada root, tidak pada direktori tempat file `.png` berada
+  - Pengecekan ekstensi `.png` kurang benar -> karena hanya menggunakan `strstr()` yang mengecek pola string secara keseluruhan, tidak mengecek per karakter dari belakang
+- Penyebab daemon terlihat tidak jalan karena lupa mengganti `chdir` di awal source code menjadi direktori tempat dimana file2 png berada, sehingga file2 `.png` tidak ter-rename
+- Solusinya ganti chdir yang awalnya root menjadi direktori tempat file2 png berada
+```
+if ((chdir("/home/irshadrasyidi/Documents/SISOP/MODUL2/SOALSHIFT/soal1/")) < 0)
+```
+- Lalu, pada pengecekan ekstensi `.png` digunakan fungsi strstr() yang mengecek secara keseluruhan dari string, sehingga jika ada pattern `.png.txt` atau `.pngabc`, strstr() akan menganggap benar, sehingga ditambahkan pengecekan lagi di dalamnya
+- Proses pengecekan dengan cara mengambil karakter-karakter di belakang titik penunjuk ekstensi dan dimasukkan ke sebuah string `cekpng`
+```
+end = dir2->d_name + strlen(dir2->d_name);
+while(end > dir2->d_name && *end != '.'){
+	--end;
+}
+strcat(cekpng, end);
+```
+- Lalu di dalam `if` selanjutnya digunakanlah string `cekpng` tersebut
+```
+if (end > dir2->d_name && (strcmp(cekpng, ".png") == 0))
+```
+- Di dalam `if` ini, baru dimasukkan proses rename yang sebelumnya 
 
 
 ## Soal2
@@ -289,6 +312,18 @@ touch -a makan_enak.txt`
 - Command ini akan mengganti hanya last access time dari `file makan_enak.txt` karena menggunakan opsi `-a` ([touch](http://www.linfo.org/touch.html))
 - Setelah command dijalankan, akan terbentuk file `makan_sehat#.txt` di folder `/makanan`
 
+### Catatan Setelah Revisi
+- Kegagalan saat demo:
+  - Saat pengaksesan `makan_enak.txt` pertama kali, daemon berjalan lancar.
+  - Saat pengaksesan `makan_enak.txt` pertama kali, file `makan_sehat#.txt` berikutnya tidak terbuat.
+- Sebetulnya, saat demo sudah berjalan lancar, tetapi waktu dicoba pengaksesan `makan_enak.txt` yang kedua kali, file `makan_sehat#.txt` tidak terbuat
+- Pada saat demo, cara akses hanya dengan membuka file `makan_enak.txt` lalu menutup kembali.
+- Lalu pada saat revisi, kami mengikuti petunjuk dari asdos penguji saat demo untuk men-set waktu last access menjadi waktu sekarang
+```
+lastaccess = time(NULL);
+```
+- Pada saat dicoba, ternyata file `makan_enak.txt` bisa terganti last accessnya dengan men-save `makan_enak.txt` dan akhirnya membuat file `makan_sehat#.txt` atau menggunakan command pada terminal `touch -a makan_enak.txt`
+- Saat dicoba meng-comment baris `lastaccess = time(NULL);`, ternyata file `makan_sehat#.txt` berikutnya tetap terbuat, sehingga kemungkinan gagalnya demo hanya karena cara akses `makan_enak.txt` yang kurang tepat, sehingga dianggap akses time tidak terganti oleh sistem
 
 
 ## Soal5
@@ -481,3 +516,10 @@ if(counter % 30 == 0){
 }
 ```
 - Jangan lupa untuk memasang `sleep(60)` pada `while(1)` utama (while pembentukan file log), supaya pembentukan file log dijalankan setiap menit.
+
+### Catatan Saat Revisi
+- Kegagalan saat demo:
+  - Folder dengan format waktu terbuat, tetapi file `log#.log` tidak.
+- Sebetulnya, program sudah benar sesuai soal, namun, pada saat demo, range waktu pembuatan folder dan file log diubah, dan kami lupa mengganti waktu pada fungsi yang membuat string dengan format waktu untuk nama folder.
+- Penjelasan lengkapnya ada pada dokumentasi/comment pada source code
+- *CATATAN PENTING* : Kondisi source code sekarang tidak sesuai dengan permintaan soal (tiap 30 menit buat folder baru, tiap 1 menit buat file log baru), tetapi diganti dengan waktu yang lebih singkat supaya mudah saat pengecekan/koreksi (tiap 1 menit buat folder baru, tiap 4 detik buat file log baru)
