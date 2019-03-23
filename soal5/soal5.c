@@ -10,6 +10,22 @@
 #include <time.h>
 #include <sys/wait.h>
 
+//PENTING
+//Settingan Kode Sekarang:
+//Pembuatan folder setiap 1 menit, dan pembuatan file log tiap 4 detik
+
+
+//Revisi:
+//Penyebab demo gagal -> fungsi 'buatnama' lupa tidak diganti waktu menit-nya:
+//Pada soal, diminta pembuatan folder setiap 30 menit, sedangkan waktu demo, durasinya diganti jadi sekian menit
+
+
+//Pada fungsi buatnama, ia bekerja untuk membuat sebuah string dengan format waktu seperti pada soal
+//Fungsi ini menerima 1 parameter integer:
+//jika bernilai 1, maka dibuat sebuah format waktu sesuai waktu sekarang
+//jika bernilai 0, maka dibuat sebuah format waktu sesuai dengan waktu 30 menit dari sekarang
+//Karena pada saat demo waktunya diganti, fungsi ini lupa diganti dan tetap membuat string dengan format 30 menitan, mengakibatkan folder berikutnya tidak bisa diisi dengan file log#.log selanjutnya
+
 char *buatnama(int x){
 	//func formatiing nama folder
 	time_t wkt = time(NULL);
@@ -19,6 +35,7 @@ char *buatnama(int x){
 	memset(&temp, 0, sizeof(temp));
 	memset(&nama, 0, sizeof(nama));
 	//if utk format sesuai current time
+	//pembuatan format waktu sesuai waktu sekarang
 	if(x == 1){
 		if(waktu.tm_mday < 10){
 			sprintf(temp, "%d", 0);
@@ -67,8 +84,11 @@ char *buatnama(int x){
 		
 	}
 	//else utk format current time + 30 mnt
+	//pembuatan format waktu 30 menit ATAU 1 menit kemudian (pilih salah satu, dan komen baris yang tidak dipilih)
 	else{
-		waktu.tm_min += 30;
+		waktu.tm_min += 1; 		//ini yang 1 menit
+		//waktu.tm_min += 30; 		//ini yang 30 menit
+
 		mktime(&waktu);
 		//printf("%s\n", nama);
 
@@ -169,10 +189,11 @@ int main() {
 			memset(&pathdir, 0, sizeof(pathdir));
 			strcat(pathdir, "/home/irshadrasyidi/log/");
 
-			sleep(1800);
+			//sleep(60) untuk pembuatan file setiap 60 detik atau 1 menit
+			sleep(60);
 		}
   	} else if (pid > 0){
-		//while ((wait(&status)) > 0);
+		//pada proses parent, tidak digunakan wait karena 2 proses ini berjalan secara paralel/bersamaan
 
 		int counter = 0;
 		int start = 1;
@@ -195,6 +216,10 @@ int main() {
 			struct stat info;
 
 			//printf("%s\n", currentname);
+			
+
+			//Mulai bagian ini, fungsi 'buatnama' mulai sering dipanggil
+			//Karena fungsi ini berperan penting dalam pemilihan folder tempat diletakkannya file log, maka pada saat demo, proses tidak berjalan karena string nama yang dihasilkan merupakan string 30 menit selanjutnya, tetapi folder wadah yang dibuat tidak dengan nama 30 menit selanjutnya, sehingga tidak cocok
 
 			if (start == 1){
 				//printf("masuk if start1");
@@ -204,7 +229,7 @@ int main() {
 				strcat(scndryname, buatnama(0));
 			}
 			//cek jika sdh waktunya pindah folder
-			else if ((start < 1) && (strcmp(currentname, scndryname) == 0) && (stat(tmp, &info) == 0)){
+			else if (start != 1 && (strcmp(currentname, scndryname) == 0) && (stat(tmp, &info) == 0)){
 				//printf("masuk if start0");
 				memset(&primryname, 0, sizeof(primryname));
 				strcat(primryname, scndryname);
@@ -216,12 +241,11 @@ int main() {
 			strcat(tmp, pathdir);
 			strcat(tmp, primryname);
 
-			//printf("%s\n", tmp);
 			//cek apakah folder sdh siap
 			if ((stat(tmp, &info) == 0) && (strcmp(primryname, "") != 0)){
 				while(1){
-					printf("tes\n");
-					start--;
+					//printf("tes\n");
+					start = 0;
 					char pathsys[200];
 					memset(&pathsys, 0, sizeof(pathsys));
 					strcat(pathsys, "/var/log/syslog");
@@ -250,11 +274,12 @@ int main() {
 					fclose(log);
 
 					counter++;
-					if(counter % 30 == 0){
+					if(counter % 15 == 0){
 						//printf("BREAK\n");
 						break;
 					}
-					sleep(60);
+					//sleep(4) untuk pembuatan file log setiap 4 detik
+					sleep(4);
 				}
 			}
 		}
