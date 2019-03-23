@@ -228,10 +228,87 @@ sudo chown www-data:www-data elen.ku
 
 ## Soal3
 - Pada soal no 3, program yang dibuat adalah sebuah program yang dapat mengekstrak isi dari `campur2.zip`, lalu menyimpan file-file hasil ekstrak tadi yang ekstensinya `.txt` ke sebuah file `daftar.txt`.
-- Catatan Pengerjaan:
+### Catatan Pengerjaan:
   - Tidak dapat mengerjakan karena bingung di `pipe`nya dan kehabisan waktu mencoba menyelesaikan kendala daemon proses di nomor 1
 
+### Catatan Setelah Revisi
+- Kegagalan saat demo:
+  - Program belum selesai
+- Pada program ini, digunakan 3 kali fork untuk menjalan 3 `exec` berikut:
+  - exec untuk unzip `campur2.zip`
+  - exec untuk `ls` dari isi folder campur2
+  - exec untuk `grep` hasil dari ls sebelumnya
+- Fork pertama buat exec yang mengunzip `campur2.zip`
+```
+pid_t pid;
+	int pipeArr[2];
+	int outFile;
+	int status;
+	
+	//fork pertama
+	//untuk unzip
+	pid = fork();
+	if (pid < 0) {
+		exit(1);
+	}
+	else if (pid == 0) {
+		//exec untuk unzip campur2.zip
+		char* arr1[3]={"unzip", "/home/irshadrasyidi/Documents/SISOP/MODUL2/SOALSHIFT/soal3/campur2.zip", NULL};
+		execv("/usr/bin/unzip", arr1);
+	}
+	while((wait(&status)) > 0);
+```
+- Lalu buka channel pipe
+```
+//channel pipe dibuka
+	if (pipe(pipeArr) < 0) {
+		exit(1);
+	}
+```
+- Lalu siapkan file output `daftar.txt` sebagai output dari program
+```
+outFile = open("daftar.txt", O_CREAT | O_APPEND | O_WRONLY);
+dup2(outFile, 1);
+```
+- Fork kedua, terdapat `exec` untuk mengambil hasil ls pada folder `campur2`
+```
+pid = fork();
+	if (pid < 0) {
+		exit(1);
+	}
+	else if (pid == 0) {
+		//meng-copy file descriptor, dan menuliskan std output dari program ke pipe
+		dup2(pipeArr[1], 1);
+		close(pipeArr[0]);
+		close(pipeArr[1]);
 
+		//exec untuk menampilkan file2 yang ada di folder campur2
+		char* arr2[3]={"ls", "/home/irshadrasyidi/Documents/SISOP/MODUL2/SOALSHIFT/soal3/campur2/", NULL};
+		execv("/bin/ls", arr2);
+	}
+```
+- Pada fork ini, digunakan juga fungsi `dup2()` untuk meng-copy file descriptor, dan menuliskan std output dari program ke pipe
+([dup2], (https://www.geeksforgeeks.org/dup-dup2-linux-system-call/))
+- Fork ketiga, untuk mengambil hasil dari `ls` sebelumnya dan dimasukkan ke `exec` dari `grep` yang `.txt$` untuk mengambil nama-nama file yang ekstensinya `.txt`
+```
+//fork ketiga
+	//untuk grep hasil dari ls
+	pid = fork();
+	if (pid < 0) {
+		exit(1);
+	}
+	else if (pid == 0) {
+		//meng-copy file descriptor, dan menuliskan std input dari pipe ke program (hasil dari ls jadi input)
+		dup2(pipeArr[0], 0);
+		close(pipeArr[0]);
+		close(pipeArr[1]);
+		
+		//exec untuk menampilkan hasil ls yang berakhiran '.txt'
+		char* arr3[3]={"grep", ".txt$", NULL};
+		execv("/bin/grep", arr3);
+	}
+```
+- Pada fork ini, digunakan lagi fungsi `dup2()` untuk meng-copy file descriptor, dan menuliskan std input dari pipe ke program (hasil dari ls jadi input)
 
 ## Soal4
 - Pada soal no 4, program yang dibuat adalah sebuah daemon proses yang dapat membuat file `makan_sehat#.txt` jika `makan_enak.txt` diakses.
